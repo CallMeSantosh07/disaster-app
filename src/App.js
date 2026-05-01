@@ -72,7 +72,7 @@ function App() {
 
   const fetchDisasters = async () => {
     try {
-      const response = await fetch('https://nepal-diaster-api.onrender.com/');
+      const response = await fetch('https://nepal-diaster-api.onrender.com/api/disasters');
       const data = await response.json();
       setDisasterData(data);
     } catch (error) { console.error("Failed to connect to backend:", error); }
@@ -132,7 +132,7 @@ function App() {
     };
 
     try {
-      await fetch('https://nepal-diaster-api.onrender.com/', {
+      await fetch('https://nepal-diaster-api.onrender.com/api/disasters', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newDisaster)
       });

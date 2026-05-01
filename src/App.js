@@ -150,7 +150,7 @@ function App() {
     // 2. Check Disaster Time
     let matchTime = true;
     if (timeFilter !== 'all' && d.date) {
-      const disasterDate = new Date(d.date);
+      const disasterDate = new Date(d.date || d.createdAt);
       const now = new Date();
       const diffInHours = (now - disasterDate) / (1000 * 60 * 60); // Convert milliseconds to hours
       
@@ -247,7 +247,7 @@ function App() {
                 <Popup>
                   <h3>{d.type.toUpperCase()}</h3>
                   <p>{d.description}</p>
-                  {d.date && <small style={{color: '#666'}}>Reported: {new Date(d.date).toLocaleString()}</small>}
+                  {(d.date || d.createdAt) && <small style={{color: '#666'}}>Reported: {new Date(d.date || d.createdAt).toLocaleString()}</small>}
                 </Popup>
               </Marker>
             </React.Fragment>

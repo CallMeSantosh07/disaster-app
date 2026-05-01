@@ -42,7 +42,6 @@ function App() {
   const [weatherData, setWeatherData] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all'); 
   
-  // --- NEW: Time Filter State ---
   const [timeFilter, setTimeFilter] = useState('all'); 
 
   const [nearbyAlerts, setNearbyAlerts] = useState([]);
@@ -50,6 +49,7 @@ function App() {
   const [showSafeZones, setShowSafeZones] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [locationName, setLocationName] = useState("Your Location");
+  
   const [disasterData, setDisasterData] = useState([]);
 
   const [clickedPosition, setClickedPosition] = useState(null);
@@ -72,18 +72,30 @@ function App() {
 
   const fetchDisasters = async () => {
     try {
-      const response = await fetch('https://nepal-diaster-api.onrender.com/api/disasters');
+      const response = await fetch('https://nepal-disaster-api.onrender.com/');
       const data = await response.json();
-      setDisasterData(data);
-    } catch (error) { console.error("Failed to connect to backend:", error); }
+      
+      if (Array.isArray(data)) {
+        setDisasterData(data);
+      } else {
+        console.error("Received bad data format:", data);
+        setDisasterData([]);
+      }
+    } catch (error) { 
+      console.error("Failed to connect to backend:", error); 
+      setDisasterData([]);
+    }
   };
 
   useEffect(() => {
-    if (userLocation && disasterData.length > 0) {
-      const alerts = disasterData.map(d => {
-        const distance = calculateDistance(userLocation[0], userLocation[1], d.position[0], d.position[1]);
-        return { ...d, distance: distance.toFixed(1) };
-      }).filter(d => d.distance < 50); 
+    if (userLocation && Array.isArray(disasterData) && disasterData.length > 0) {
+      const alerts = disasterData
+        .filter(d => d.position && d.position.length === 2) 
+        .map(d => {
+          const distance = calculateDistance(userLocation[0], userLocation[1], d.position[0], d.position[1]);
+          return { ...d, distance: distance.toFixed(1) };
+        })
+        .filter(d => d.distance < 50); 
       setNearbyAlerts(alerts);
     }
   }, [userLocation, disasterData]);
@@ -132,7 +144,7 @@ function App() {
     };
 
     try {
-      await fetch('https://nepal-diaster-api.onrender.com/api/disasters', {
+      await fetch('https://nepal-disaster-api.onrender.com/', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newDisaster)
       });
@@ -142,24 +154,21 @@ function App() {
     } catch (error) { console.error("Error saving disaster:", error); }
   };
 
-  // --- NEW: Combine the Type Filter and the Time Filter! ---
-  const filteredDisasters = disasterData.filter(d => {
-    // 1. Check Disaster Type
+  const filteredDisasters = Array.isArray(disasterData) ? disasterData.filter(d => {
     const matchType = activeFilter === 'all' ? true : d.type === activeFilter;
     
-    // 2. Check Disaster Time
     let matchTime = true;
-    if (timeFilter !== 'all' && d.date) {
+    if (timeFilter !== 'all' && (d.date || d.createdAt)) {
       const disasterDate = new Date(d.date || d.createdAt);
       const now = new Date();
-      const diffInHours = (now - disasterDate) / (1000 * 60 * 60); // Convert milliseconds to hours
+      const diffInHours = (now - disasterDate) / (1000 * 60 * 60);
       
       if (timeFilter === '24h') matchTime = diffInHours <= 24;
       if (timeFilter === '7d') matchTime = diffInHours <= (24 * 7);
     }
     
-    return matchType && matchTime; // Only show if it passes BOTH filters
-  });
+    return matchType && matchTime;
+  }) : [];
 
   return (
     <div className="app-container">
@@ -188,7 +197,6 @@ function App() {
         <button className={`filter-btn ${activeFilter === 'earthquake' ? 'btn-quake' : 'btn-inactive'}`} onClick={() => setActiveFilter('earthquake')}>💥 Earthquakes</button>
         <button className={`filter-btn ${showSafeZones ? 'btn-safe' : 'btn-inactive'}`} onClick={() => setShowSafeZones(!showSafeZones)}>{showSafeZones ? '🟢 Hide Safe Zones' : '🟢 Show Safe Zones'}</button>
         
-        {/* --- NEW: The Time Filter Dropdown UI --- */}
         <select 
           value={timeFilter} 
           onChange={(e) => setTimeFilter(e.target.value)}
@@ -198,7 +206,6 @@ function App() {
           <option value="24h">⏱️ Last 24 Hours</option>
           <option value="7d">⏱️ Last 7 Days</option>
         </select>
-
       </div>
       
       <p style={{ textAlign: 'center', color: '#7f8c8d', marginBottom: '10px' }}>
@@ -240,18 +247,21 @@ function App() {
             </Marker>
           )}
 
-          {filteredDisasters.map((d) => (
-            <React.Fragment key={d._id || d.id}>
-              <Circle center={d.position} radius={d.radius} pathOptions={{ color: d.type === 'flood' ? '#e74c3c' : '#f39c12', fillColor: d.type === 'flood' ? '#e74c3c' : '#f39c12', fillOpacity: 0.2 }} />
-              <Marker position={d.position} icon={d.type === 'flood' ? floodIcon : landslideIcon}>
-                <Popup>
-                  <h3>{d.type.toUpperCase()}</h3>
-                  <p>{d.description}</p>
-                  {(d.date || d.createdAt) && <small style={{color: '#666'}}>Reported: {new Date(d.date || d.createdAt).toLocaleString()}</small>}
-                </Popup>
-              </Marker>
-            </React.Fragment>
-          ))}
+          {filteredDisasters.map((d) => {
+            if (!d.position || d.position.length !== 2) return null; 
+            return (
+              <React.Fragment key={d._id || d.id}>
+                <Circle center={d.position} radius={d.radius} pathOptions={{ color: d.type === 'flood' ? '#e74c3c' : '#f39c12', fillColor: d.type === 'flood' ? '#e74c3c' : '#f39c12', fillOpacity: 0.2 }} />
+                <Marker position={d.position} icon={d.type === 'flood' ? floodIcon : landslideIcon}>
+                  <Popup>
+                    <h3>{d.type.toUpperCase()}</h3>
+                    <p>{d.description}</p>
+                    {(d.date || d.createdAt) && <small style={{color: '#666'}}>Reported: {new Date(d.date || d.createdAt).toLocaleString()}</small>}
+                  </Popup>
+                </Marker>
+              </React.Fragment>
+            );
+          })}
 
           {showSafeZones && safeZoneData.map((safe) => (
              <Marker key={safe.id} position={safe.position} icon={safeIcon}><Popup><h3>🟢 Safe Zone</h3>{safe.name}</Popup></Marker>

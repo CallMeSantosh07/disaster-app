@@ -72,7 +72,7 @@ function App() {
 
   const fetchDisasters = async () => {
     try {
-      const response = await fetch('https://nepal-disaster-api.onrender.com/');
+      const response = await fetch('https://nepal-disaster-api.onrender.com/api/disasters');
       const data = await response.json();
       
       if (Array.isArray(data)) {
@@ -144,7 +144,7 @@ function App() {
     };
 
     try {
-      await fetch('https://nepal-disaster-api.onrender.com/', {
+      await fetch('https://nepal-disaster-api.onrender.com/api/disasters', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newDisaster)
       });

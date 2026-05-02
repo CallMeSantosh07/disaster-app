@@ -140,7 +140,7 @@ function App() {
     const newDisaster = {
       type: reportType, position: clickedPosition, locationName: "User Reported Location",
       severity: reportSeverity, description: "Reported by a community user via the app.",
-      radius: reportSeverity === 'High' ? 8000 : 4000
+      radius: reportSeverity === 'High' ? 4000 : 2000
     };
 
     try {
@@ -251,7 +251,7 @@ function App() {
             if (!d.position || d.position.length !== 2) return null; 
             return (
               <React.Fragment key={d._id || d.id}>
-                <Circle center={d.position} radius={d.radius} pathOptions={{ color: d.type === 'flood' ? '#e74c3c' : '#f39c12', fillColor: d.type === 'flood' ? '#e74c3c' : '#f39c12', fillOpacity: 0.2 }} />
+                <Circle center={d.position} radius={d.radius / 2} pathOptions={{ color: d.type === 'flood' ? '#e74c3c' : '#f39c12', fillColor: d.type === 'flood' ? '#e74c3c' : '#f39c12', fillOpacity: 0.2 }} />
                 <Marker position={d.position} icon={d.type === 'flood' ? floodIcon : landslideIcon}>
                   <Popup>
                     <h3>{d.type.toUpperCase()}</h3>
